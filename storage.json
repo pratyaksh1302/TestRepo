@@ -50,13 +50,6 @@
             },
             "defaultValue": "snet-pe-ngpdevops-westeu-001"
         },
-        "peSubnetName": {
-            "type": "string",
-            "metadata": {
-                "description": "Subnet, delegated for private endpoint"
-            },
-            "defaultValue": "snet-pe-ngpdevops-westeu-002"
-        },  
         "skuTier": {
             "type": "string",
             "defaultValue": "Standard",
@@ -184,7 +177,7 @@
                         "value": "[parameters('vnetName')]"
                     },
                     "subnetName": {
-                        "value": "[parameters('peSubnetName')]"
+                        "value": "[parameters('subnetName')]"
                     }
                 }
             },
