@@ -1,0 +1,193 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workloadName": {
+            "type": "string",
+            "metadata": {
+                "description": "The short name of the workload"
+            },
+            "defaultValue": "ocs"
+        },
+        "environment": {
+            "type": "string",
+            "metadata": {
+                "description": "Short abbreveation of the environment stage: demo, dev, test, stage, etc."
+            },
+            "defaultValue": "lab1"
+        },
+        "region": {
+            "type": "string",
+            "metadata": {
+                "description": "Abbreveation of the location where the resource will be deployed. Will be used only for naming purposes. E.g. westeu,northeu"
+            },
+            "defaultValue": "westeu"
+        },
+        "StorageAccountSkuName": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Standard_LRS",
+                "Standard_GRS",
+                "Standard_ZRS",
+                "Premium_LRS"
+            ],
+            "metadata": {
+                "description": "Storage Account SKU name"
+            }
+        },
+        "vnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of Vnet having delegated subnet for private endpoint"
+            },
+            "defaultValue": "vnet-ngpdevops-westeu-001"
+        },
+        "subnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Subnet, delegated for private endpoint"
+            },
+            "defaultValue": "snet-pe-ngpdevops-westeu-001"
+        },
+        "skuTier": {
+            "type": "string",
+            "defaultValue": "Standard",
+            "allowedValues": [ "Standard", "Premium" ],
+            "metadata": {
+                "description": "Storage Account SKU tier"
+            }
+        },
+        "purpose": {
+            "type": "string",
+            "metadata": {
+                "description": "The purpose name of the instance"
+            },
+            "defaultValue": "poc2"
+        },
+        "index": {
+            "type": "string",
+            "metadata": {
+                "description": "The count of the instance will be indexed"
+            },
+            "defaultValue": "001"
+        },
+        "vnetRgName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Resource Group where then VNet is deployed"
+            },
+            "defaultValue": "rg-nw-ngpdevops-westeu-001"
+        },
+        "storageSubResourcesTypes": {
+            "type": "array",
+            "metadata": {
+                "description": "The list of target subresource type for Private Endpoint"
+            },
+            "defaultValue": [ "blob", "file", "table", "queue" ]
+        },
+        "tags": {
+            "type": "object",
+            "metadata": {
+                "description": "A list of tags required by policy"
+            },
+            "defaultValue": {
+                "Application Name": "OCCworks",
+                "Business Criticality": "none",
+                "Owner": "Francis Hardy",
+                "Start date of project": "none",
+                "Ticket Number": "0"
+            }
+        }
+    },
+    "variables": {
+        "subscriptionID": "[subscription().subscriptionId]",
+        "storageName": "[concat('st', parameters('purpose'), parameters('workloadName'), parameters('environment'),  parameters('region'), parameters('index'))]",
+        "storageId": "[resourceId(resourceGroup().name, 'Microsoft.Storage/storageAccounts', variables('storageName'))]",
+        "storageConnectionStringName": "[concat(variables('storageName'), 'Connectionstring')]",
+        "subnetId": "[concat(resourceId(parameters('vnetRgName'), 'Microsoft.Network/virtualNetworks/subnets/', parameters('vnetName'), parameters('subnetName')))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2021-04-01",
+            "name": "[variables('storageName')]",
+            "location": "[resourceGroup().location]",
+            "tags": "[parameters('tags')]",
+            "sku": {
+                "name": "[parameters('StorageAccountSkuName')]",
+                "tier": "[parameters('skuTier')]"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "minimumTlsVersion": "TLS1_2",
+                "allowBlobPublicAccess": true,
+                "allowSharedKeyAccess": true,
+                "networkAcls": {
+                    "bypass": "AzureServices",
+                    "ipRules": [],
+                    "defaultAction": "Deny"
+                },
+                "supportsHttpsTrafficOnly": true,
+                "encryption": {
+                    "services": {
+                        "file": {
+                            "keyType": "Account",
+                            "enabled": true
+                        },
+                        "blob": {
+                            "keyType": "Account",
+                            "enabled": true
+                        }
+                    },
+                    "keySource": "Microsoft.Storage"
+                },
+                "accessTier": "Hot"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageName'))]"
+            ],
+            "apiVersion": "2020-10-01",
+            "name": "[concat(variables('storageName'), '-', 'pe', concat(parameters('storageSubResourcesTypes')[copyIndex()]))]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "relativePath": "./privateEndpoint.json"
+                },
+                "parameters": {
+                    "targetResourceName": {
+                        "value": "[variables('storageName')]"
+                    },
+                    "targetResourceType": {
+                        "value": "Microsoft.Storage/storageAccounts"
+                    },
+                    "targetSubResourceType": {
+                        "value": "[parameters('storageSubResourcesTypes')[copyIndex()]]"
+                    }
+                }
+            },
+            "copy": {
+                "name": "copyPE",
+                "count": "[length(parameters('storageSubResourcesTypes'))]",
+                "mode": "Parallel"
+            }
+        }
+    ],
+    "outputs": {
+        "storageName": {
+            "type": "string",
+            "value": "[variables('storageName')]"
+        },
+        "storageConnectionStringName": {
+            "type": "string",
+            "value": "[variables('storageConnectionStringName')]"
+        },
+        "storageId": {
+            "type": "string",
+            "value": "[variables('storageId')]"
+        }
+    }
+}
