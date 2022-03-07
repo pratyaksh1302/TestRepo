@@ -166,6 +166,18 @@
                     },
                     "targetSubResourceType": {
                         "value": "[parameters('storageSubResourcesTypes')[copyIndex()]]"
+                    },
+                    "targetResourceRG": {
+                        "value": "ModuleRG"
+                    },
+                    "vnetRgName": {
+                        "value": "[parameters('vnetRgName')]"
+                    },
+                    "vnetName": {
+                        "value": "[parameters('vnetName')]"
+                    },
+                    "subnetName": {
+                        "value": "[parameters('peSubnetName')]"
                     }
                 }
             },
