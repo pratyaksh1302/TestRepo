@@ -84,7 +84,7 @@
             "metadata": {
                 "description": "The list of target subresource type for Private Endpoint"
             },
-            "defaultValue": [ "blob", "file", "table", "queue" ]
+            "defaultValue": [ "blob", "file"]
         },
         "tags": {
             "type": "object",
