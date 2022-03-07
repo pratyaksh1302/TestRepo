@@ -155,7 +155,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "relativePath": "./privateEndpoint.json"
+                    "relativePath": "./privateEndpointNew.json"
                 },
                 "parameters": {
                     "targetResourceName": {
